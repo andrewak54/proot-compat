@@ -1,0 +1,21 @@
+#!/bin/bash
+#exec > /data/data/com.termux/files/home/ux11.log 2>&1
+
+# Kill all old processes
+killall -9 termux-x11 pulseaudio virgl_test_server_android termux-wake-lock
+
+# Start Termux X11
+am start --user 0 -n com.termux.x11/com.termux.x11.MainActivity
+XDG_RUNTIME_DIR=${TMPDIR}
+XKB_CONFIG_ROOT=$PREFIX/share/xkeyboard-config-2 termux-x11 :0 -ac &
+sleep 3
+
+# Start PulseAudio (for Termux-side audio)
+pulseaudio --start --exit-idle-time=-1
+
+# Start GPU accelerated virglserver
+virgl_test_server_android &
+
+# Log in to proot Ubuntu and start the desktop environment. Note that startxfce4 at the end is used to start the XFCE4 desktop.
+proot-distro login ubuntu --user akulov --shared-tmp -- bash -c "LD_PRELOAD=/home/akulov/libfakechown.so dropbear -R -p 1322 -F & export DISPLAY=:0 LD_PRELOAD=/home/akulov/libfakechown.so; dbus-launch --exit-with-session startxfce4; kill %1" 2>&1 | grep -v "^Xlib:"
+
