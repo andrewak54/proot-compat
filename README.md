@@ -50,6 +50,32 @@ umask 0077
 exec env LD_PRELOAD=/home/akulov/libfakechown.so /usr/bin/tmux "$@"
 ```
 
+## Resolution switching (set-resolution.sh)
+
+`set-resolution.sh` provides a GUI menu (via `zenity`) to switch the termux-x11 display resolution at runtime — no X server restart required.
+
+### Why xrandr doesn't work
+
+termux-x11 implements only a minimal subset of RandR. `xrandr --mode`, `--scale`, and `--fb` all fail at runtime.
+
+### How it works
+
+The Termux:X11 app accepts preference changes via Android broadcast. From inside PRoot, `/dev/binder` is accessible, so `cmd activity broadcast` works without root:
+
+```bash
+env -u LD_PRELOAD /system/bin/cmd activity broadcast \
+  --user 0 -a com.termux.x11.CHANGE_PREFERENCE -p com.termux.x11 \
+  --es displayResolutionMode custom --es displayResolutionCustom 1280x720
+```
+
+To restore native resolution: `--es displayResolutionMode native`
+
+### Usage
+
+Copy `set-resolution.sh` to `~/.local/bin/` and `set-resolution.desktop` to `~/.local/share/applications/`. The script appears in the XFCE application menu under Settings → Set Resolution.
+
+Predefined resolutions cover 16:9, Samsung S24+ (19.5:9), and Samsung Z Fold7 inner (10:9) and cover (21:9) screen ratios.
+
 ## Context
 
 Tested on Termux with `proot-distro` (Ubuntu), PRoot kernel `6.17`, dropbear `2022.83`, tmux `3.x`. The real kernel uid and the PRoot-faked uid differ by one because `proot-distro --user` maps the Termux uid to a different value inside the chroot.
