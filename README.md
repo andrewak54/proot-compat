@@ -52,7 +52,7 @@ exec env LD_PRELOAD=/home/akulov/libfakechown.so /usr/bin/tmux "$@"
 
 ## Resolution switching (set-resolution.sh)
 
-`set-resolution.sh` provides a GUI menu (via `zenity`) to switch the termux-x11 display resolution at runtime — no X server restart required.
+`set-resolution.sh` provides a menu to switch the termux-x11 display resolution at runtime — no X server restart required. The menu opens in an xterm window using bash `select` (zenity crashes under PRoot due to MIT-SHM BadAccess).
 
 ### Why xrandr doesn't work
 
@@ -60,15 +60,19 @@ termux-x11 implements only a minimal subset of RandR. `xrandr --mode`, `--scale`
 
 ### How it works
 
-The Termux:X11 app accepts preference changes via Android broadcast. From inside PRoot, `/dev/binder` is accessible, so `cmd activity broadcast` works without root:
+The script uses `termux-x11-preference` (preferred) or falls back to `cmd activity broadcast`:
 
 ```bash
-env -u LD_PRELOAD /system/bin/cmd activity broadcast \
+# termux-x11-preference (works on all devices):
+termux-x11-preference displayResolutionMode:custom displayResolutionCustom:1280x720
+
+# cmd broadcast (blocked on some newer devices):
+/system/bin/cmd activity broadcast \
   --user 0 -a com.termux.x11.CHANGE_PREFERENCE -p com.termux.x11 \
   --es displayResolutionMode custom --es displayResolutionCustom 1280x720
 ```
 
-To restore native resolution: `--es displayResolutionMode native`
+To restore native resolution: `displayResolutionMode:native`
 
 ### Usage
 
